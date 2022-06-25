@@ -1,0 +1,14 @@
+[Unit]
+Description=mapadmin
+After=network.target
+
+[Service]
+User=paltis
+Group=paltis
+WorkingDirectory=/home/paltis/simple-map-admnner/server
+Environment="PATH=/home/paltis/simple-map-admnner/server/venv/bin"
+EnvironmentFile=/home/paltis/simple-map-admnner/server/.env
+ExecStart=/home/paltis/simple-map-admnner/server/venv/bin/gunicorn -w 4 -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:8000
+
+[Install]
+WantedBy=multi-user.target
