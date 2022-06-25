@@ -27,7 +27,7 @@ WITH stock_in_stores AS (
             , name
             , city || ', ' || street || ', ' || house_number AS adress
             , geom
-            , geom::geography 
+            , geom::geography
               <-> cp_PointWGS(28.66468, 50.26009)::geography AS dist_m
         FROM public.storages
         ORDER BY dist_m
@@ -39,11 +39,13 @@ WITH stock_in_stores AS (
     ),
     item_in_oreder AS (
         SELECT 
-              co.id AS order_id
+              customers.id AS order_id
             , co.geom
             , product_id
             , quantity
-        FROM public.customer_orders co
+            , city || ', ' || street || ', ' || house_number AS adress
+        FROM public.customers 
+        LEFT JOIN public.customer_orders co ON customers.id = co.customer_id
         LEFT JOIN public.carts c ON co.cart_id = c.id
         LEFT JOIN public.cart_items ci ON c.id = ci.cart_id
     ),
@@ -52,17 +54,18 @@ WITH stock_in_stores AS (
     SELECT 
              io.order_id
            , io.geom
-           , io.product_id
+            ,io.adress
            , sum(io.quantity)
            , array_agg(io.dist_m) AS dist_m
            , array_agg(storage_id) as store_id
-       FROM  stock_in_stores s 
+       FROM stock_in_stores s 
        CROSS JOIN LATERAL(
        SELECT   
              order_id
            , geom
            , product_id
            , quantity
+           , adress
            , s.geom::geography <-> i.geom::geography AS dist_m
        FROM item_in_oreder i
        WHERE i.product_id = s.product_id AND s.quantity > 0
@@ -73,19 +76,18 @@ WITH stock_in_stores AS (
              io.order_id
            , io.geom
            , io.product_id
-        , io.quantity
+        , io.quantity , io.adress
 
     ),
-    add_temp as (SELECT               
+    add_temp as (SELECT DISTINCT              
               storage_id
             , fund_id
             , geom
             , name
             , adress
-            , array_agg(product_id) as product_id
             , dist_m
-                 FROM stock_in_stores
-                GROUP BY  storage_id, fund_id, geom, name, adress, product_id ,dist_m
+             FROM stock_in_stores
+
                 )
     SELECT
          jsonb_build_object(
