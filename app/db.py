@@ -1,6 +1,3 @@
-
-from multiprocessing.dummy import Array
-from telnetlib import Telnet
 from fastapi import HTTPException, status
 from .config import settings
 
@@ -30,9 +27,7 @@ async def pg_fetch(pool, sql: Text, *args: Optional[Any]):
         schema='pg_catalog'
     )
     try:
-        prepare = await conn.prepare(sql)
-
-        res = await prepare.fetch(*args)
+        res = await conn.fetch(sql,*args)
         res = [dict(el) for el in res]
 
         if len(res) == 0:
